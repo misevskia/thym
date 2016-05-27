@@ -12,6 +12,7 @@ package org.eclipse.thym.ui.config.internal;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.List;
 
 import org.eclipse.core.databinding.DataBindingContext;
 import org.eclipse.core.databinding.UpdateValueStrategy;
@@ -27,6 +28,7 @@ import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.PixelConverter;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
@@ -35,7 +37,10 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.thym.core.config.Author;
 import org.eclipse.thym.core.config.Content;
 import org.eclipse.thym.core.config.Widget;
+import org.eclipse.thym.core.engine.HybridMobileEngine;
+import org.eclipse.thym.core.engine.HybridMobileEngineManager;
 import org.eclipse.thym.ui.HybridUI;
+import org.eclipse.thym.ui.internal.engine.AvailableCordovaEnginesSection;
 import org.eclipse.thym.ui.plugins.internal.CordovaPluginSelectionPage;
 import org.eclipse.thym.ui.plugins.internal.LaunchCordovaPluginWizardAction;
 import org.eclipse.thym.ui.wizard.export.NativeArtifactExportAction;
@@ -177,6 +182,7 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 		
 		createPluginsSection(right);
 		createExportSection(right);
+		createEngineSection(right);
 		
 		m_bindingContext = initDataBindings();
 		bindAuthor(m_bindingContext); // binding separately is necessary to be able to work with WindowBuilder
@@ -286,6 +292,29 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 		GridDataFactory.createFrom(textGridData).applyTo(txtContentsource);
 	}
 	
+	private void createEngineSection(Composite parent) {
+		Section sctnEngines = createSection(parent, "Hybrid Mobile Engines");
+		sctnEngines.setLayout(FormUtils.createClearTableWrapLayout(false, 1));
+		TableWrapData data = new TableWrapData(TableWrapData.FILL_GRAB);
+		sctnEngines.setLayoutData(data);
+
+		Composite container = formToolkit.createComposite(sctnEngines, SWT.WRAP);
+		sctnEngines.setClient(container);
+		container.setLayout(FormUtils.createSectionClientGridLayout(false, 2));
+
+		AvailableCordovaEnginesSection engineSection = new AvailableCordovaEnginesSection();
+		engineSection.createControl(container);
+		HybridMobileEngine[] defaultEngines = HybridMobileEngineManager.defaultEngines(); 
+		if ( defaultEngines != null ){
+			engineSection.setSelection(new StructuredSelection(defaultEngines));
+		} else {
+			List<HybridMobileEngine> engines = engineSection.getListedEngines();
+			if(engines != null && engines.size() == 1){
+				engineSection.setSelection(new StructuredSelection(engines.get(0)));
+			}
+		}
+	}
+
 	private Section createSection(Composite parent, String text){
 		Section sctn = formToolkit.createSection(parent, Section.TITLE_BAR);
 		sctn.clientVerticalSpacing = FormUtils.SECTION_HEADER_VERTICAL_SPACING;
