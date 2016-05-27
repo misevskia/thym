@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013, 2015 Red Hat, Inc. 
+ * Copyright (c) 2013, 2016 Red Hat, Inc. 
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -99,8 +99,19 @@ public class HybridMobileEngineManager {
 	private boolean engineMatches(Engine configEngine, HybridMobileEngine engine){
 		//null checks needed: sometimes we encounter engines without a name or version attribute.
 		if(engine.isManaged()){
-			return configEngine.getName() != null && configEngine.getName().equals(engine.getId()) &&
-				configEngine.getSpec() != null && configEngine.getSpec().equals(engine.getVersion());
+
+			// Since cordova uses semver, version numbers in config.xml can begin with '~' or '^'.
+			// This breaks the check below, since engine.getVersion() is stored without.
+			if (configEngine.getSpec() != null) {
+				String spec = configEngine.getSpec();
+				if (spec.startsWith("~") || spec.startsWith("^")) {
+					spec = spec.substring(1);
+				}
+				return configEngine.getName() != null && configEngine.getName().equals(engine.getId())
+						&& spec.equals(engine.getVersion());
+			} else {
+				return false;
+			}
 		}else{
 			return engine.getLocation().isValidPath(configEngine.getSpec()) 
 					&& engine.getLocation().equals(new Path(configEngine.getSpec()));
@@ -163,6 +174,7 @@ public class HybridMobileEngineManager {
 			
 			@Override
 			public IStatus runInWorkspace(IProgressMonitor monitor) throws CoreException {
+
 				WidgetModel model = WidgetModel.getModel(project);
 				Widget w = model.getWidgetForEdit();
 				List<Engine> existingEngines = w.getEngines();
