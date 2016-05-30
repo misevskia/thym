@@ -283,7 +283,7 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 		
 		createFormFieldLabel(container, "Description:");
 		
-		txtDescription = formToolkit.createText(container, "", SWT.MULTI);
+		txtDescription = formToolkit.createText(container, "", SWT.MULTI | SWT.WRAP | SWT.V_SCROLL);
 		GridDataFactory.createFrom(textGridData).hint(SWT.DEFAULT, 100).applyTo(txtDescription);
 		
 		createFormFieldLabel(container, "Content Source:");
