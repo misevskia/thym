@@ -179,9 +179,9 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 		
 		createNameDescriptionSection(left);
 		createAuthorSection(left);
+		createExportSection(left);
 		
 		createPluginsSection(right);
-		createExportSection(right);
 		createEngineSection(right);
 		
 		m_bindingContext = initDataBindings();
