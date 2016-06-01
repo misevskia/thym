@@ -19,6 +19,7 @@ import org.eclipse.core.databinding.UpdateValueStrategy;
 import org.eclipse.core.databinding.beans.BeanProperties;
 import org.eclipse.core.databinding.observable.value.IObservableValue;
 import org.eclipse.core.databinding.observable.value.WritableValue;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -34,11 +35,11 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.thym.core.HybridProject;
 import org.eclipse.thym.core.config.Author;
 import org.eclipse.thym.core.config.Content;
 import org.eclipse.thym.core.config.Widget;
 import org.eclipse.thym.core.engine.HybridMobileEngine;
-import org.eclipse.thym.core.engine.HybridMobileEngineManager;
 import org.eclipse.thym.ui.HybridUI;
 import org.eclipse.thym.ui.internal.engine.AvailableCordovaEnginesSection;
 import org.eclipse.thym.ui.plugins.internal.CordovaPluginSelectionPage;
@@ -293,7 +294,7 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 	}
 	
 	private void createEngineSection(Composite parent) {
-		Section sctnEngines = createSection(parent, "Hybrid Mobile Engines");
+		Section sctnEngines = createSection(parent, "Hybrid Mobile Engine");
 		sctnEngines.setLayout(FormUtils.createClearTableWrapLayout(false, 1));
 		TableWrapData data = new TableWrapData(TableWrapData.FILL_GRAB);
 		sctnEngines.setLayoutData(data);
@@ -304,14 +305,11 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 
 		AvailableCordovaEnginesSection engineSection = new AvailableCordovaEnginesSection();
 		engineSection.createControl(container);
-		HybridMobileEngine[] defaultEngines = HybridMobileEngineManager.defaultEngines(); 
-		if ( defaultEngines != null ){
-			engineSection.setSelection(new StructuredSelection(defaultEngines));
-		} else {
-			List<HybridMobileEngine> engines = engineSection.getListedEngines();
-			if(engines != null && engines.size() == 1){
-				engineSection.setSelection(new StructuredSelection(engines.get(0)));
-			}
+
+		HybridProject hybridProject = getProject();
+		HybridMobileEngine[] activeEngines = hybridProject.getActiveEngines();
+		if(activeEngines != null){
+			engineSection.setSelection(new StructuredSelection(activeEngines));
 		}
 	}
 
@@ -320,6 +318,11 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 		sctn.clientVerticalSpacing = FormUtils.SECTION_HEADER_VERTICAL_SPACING;
 		sctn.setText(text);
 		return sctn;
+	}
+
+	private HybridProject getProject() {
+		IFile file = (IFile) getEditor().getEditorInput().getAdapter(IFile.class);
+		return HybridProject.getHybridProject(file.getProject());
 	}
 
 	private void bindAuthor(DataBindingContext bindingContext) {
