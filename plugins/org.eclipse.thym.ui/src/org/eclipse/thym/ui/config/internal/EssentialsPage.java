@@ -29,6 +29,7 @@ import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.PixelConverter;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -73,6 +74,7 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 
 	private DataBindingContext m_bindingContext;
 	
+	private AvailableCordovaEnginesSection engineSection;
 	private FormToolkit formToolkit;
 	private Text txtIdtxt;
 	private Text txtAuthorname;
@@ -303,12 +305,27 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 		sctnEngines.setClient(container);
 		container.setLayout(FormUtils.createSectionClientGridLayout(false, 2));
 
-		AvailableCordovaEnginesSection engineSection = new AvailableCordovaEnginesSection();
+		engineSection = new AvailableCordovaEnginesSection();
 		engineSection.createControl(container);
 
-		HybridProject hybridProject = getProject();
-		HybridMobileEngine[] activeEngines = hybridProject.getActiveEngines();
-		if(activeEngines != null){
+		getWidget().addPropertyChangeListener("engines", new PropertyChangeListener() {
+			// We can't use updateActiveEngines() here because config.xml changes before
+			// the active engine in the HybridProject -- the change fires while active
+			// engine the old one.
+			@Override
+			public void propertyChange(PropertyChangeEvent ev) {
+				updateActiveEngines();
+			}
+		});
+
+		updateActiveEngines();
+	}
+
+	private void updateActiveEngines() {
+		IFile file = (IFile) getEditor().getEditorInput().getAdapter(IFile.class);
+		HybridProject project = HybridProject.getHybridProject(file.getProject());
+		HybridMobileEngine[] activeEngines = project.getActiveEngines();
+		if (activeEngines != null) {
 			engineSection.setSelection(new StructuredSelection(activeEngines));
 		}
 	}
@@ -318,11 +335,6 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 		sctn.clientVerticalSpacing = FormUtils.SECTION_HEADER_VERTICAL_SPACING;
 		sctn.setText(text);
 		return sctn;
-	}
-
-	private HybridProject getProject() {
-		IFile file = (IFile) getEditor().getEditorInput().getAdapter(IFile.class);
-		return HybridProject.getHybridProject(file.getProject());
 	}
 
 	private void bindAuthor(DataBindingContext bindingContext) {

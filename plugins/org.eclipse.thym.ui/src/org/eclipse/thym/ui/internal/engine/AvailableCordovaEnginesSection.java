@@ -276,7 +276,7 @@ public class AvailableCordovaEnginesSection implements ISelectionProvider{
 		GridDataFactory.generate(tableLbl, 2, 1);
 		
 		Tree tree = new Tree(composite, SWT.CHECK | SWT.FULL_SELECTION);
-		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).grab(true, false).minSize(new Point(TREE_WIDTH, TREE_HEIGHT)).applyTo(tree); 
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).grab(true, true).minSize(new Point(TREE_WIDTH, TREE_HEIGHT)).applyTo(tree); 
 		
 		tree.setHeaderVisible(true);
 		tree.setLinesVisible(true);	
