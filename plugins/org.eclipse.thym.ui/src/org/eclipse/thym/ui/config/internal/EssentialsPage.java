@@ -12,6 +12,7 @@ package org.eclipse.thym.ui.config.internal;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.core.databinding.DataBindingContext;
@@ -39,8 +40,10 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.thym.core.HybridProject;
 import org.eclipse.thym.core.config.Author;
 import org.eclipse.thym.core.config.Content;
+import org.eclipse.thym.core.config.Engine;
 import org.eclipse.thym.core.config.Widget;
 import org.eclipse.thym.core.engine.HybridMobileEngine;
+import org.eclipse.thym.core.engine.internal.cordova.CordovaEngineProvider;
 import org.eclipse.thym.ui.HybridUI;
 import org.eclipse.thym.ui.internal.engine.AvailableCordovaEnginesSection;
 import org.eclipse.thym.ui.plugins.internal.CordovaPluginSelectionPage;
@@ -303,7 +306,7 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 
 		Composite container = formToolkit.createComposite(sctnEngines, SWT.WRAP);
 		sctnEngines.setClient(container);
-		container.setLayout(FormUtils.createSectionClientGridLayout(false, 2));
+		container.setLayout(FormUtils.createSectionClientGridLayout(false, 1));
 
 		engineSection = new AvailableCordovaEnginesSection();
 		engineSection.createControl(container);
@@ -314,7 +317,27 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 			// engine the old one.
 			@Override
 			public void propertyChange(PropertyChangeEvent ev) {
-				updateActiveEngines();
+				List<Engine> activeEngines = getWidget().getEngines();
+				// getEngines() can return null; property change fires when engine is removed
+				if (activeEngines == null || activeEngines.size() == 0) {
+					return;
+				}
+				List<HybridMobileEngine> engines = new ArrayList<HybridMobileEngine>();
+				List<HybridMobileEngine> availableEngines = 
+						new CordovaEngineProvider().getAvailableEngines();
+				for (HybridMobileEngine availEngine : availableEngines) {
+					for (Engine activeEngine : activeEngines) {
+						if (availEngine.getId() == activeEngine.getName() &&
+								availEngine.getVersion() == activeEngine.getSpec()) {
+							engines.add(availEngine);
+						}
+					}
+				}
+				if (engines.size() != 0) {
+					engineSection.setSelection(new StructuredSelection(engines.toArray()));
+				} else {
+					
+				}
 			}
 		});
 

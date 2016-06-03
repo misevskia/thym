@@ -75,6 +75,7 @@ import org.eclipse.thym.ui.HybridUI;
 import org.eclipse.thym.ui.PlatformImage;
 import org.eclipse.thym.ui.internal.status.StatusManager;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.ui.services.IEvaluationService;
 
 import com.github.zafarkhaja.semver.ParseException;
@@ -84,7 +85,7 @@ public class AvailableCordovaEnginesSection implements ISelectionProvider{
 	
 
 	private static final int TREE_HEIGHT = 250;
-	private static final int TREE_WIDTH = 350;
+	private static final int TREE_WIDTH = 500;
 	
 	private ListenerList selectionListeners;
 	private ListenerList engineChangeListeners;
@@ -92,6 +93,7 @@ public class AvailableCordovaEnginesSection implements ISelectionProvider{
 	private ISelection prevSelection = new StructuredSelection();
 	private CordovaEngineProvider provider;
 	private Button removeBtn;
+	private FormToolkit formToolkit;
 	
 	public static interface EngineListChangeListener{
 		public void listChanged();
@@ -264,6 +266,12 @@ public class AvailableCordovaEnginesSection implements ISelectionProvider{
 	public AvailableCordovaEnginesSection() {
 		this.selectionListeners = new ListenerList();
 		this.engineChangeListeners = new ListenerList();
+		this.formToolkit = null;
+	}
+
+	public AvailableCordovaEnginesSection(FormToolkit formToolkit) {
+		this();
+		this.formToolkit = formToolkit;
 	}
 
 	public void createControl(final Composite parent) {
@@ -280,11 +288,11 @@ public class AvailableCordovaEnginesSection implements ISelectionProvider{
 		
 		tree.setHeaderVisible(true);
 		tree.setLinesVisible(true);	
-		TreeColumn col_0 = new TreeColumn(tree, SWT.CENTER);
+		TreeColumn col_0 = new TreeColumn(tree, SWT.LEFT);
 		col_0.setText("Engine");
 		col_0.setWidth(TREE_WIDTH/2);
 		col_0.setMoveable(false);
-		TreeColumn col_1 = new TreeColumn(tree, SWT.CENTER);
+		TreeColumn col_1 = new TreeColumn(tree, SWT.LEFT);
 		col_1.setText("Location");
 		col_1.setWidth(TREE_WIDTH/2);
 		col_1.setMoveable(false);
@@ -384,6 +392,15 @@ public class AvailableCordovaEnginesSection implements ISelectionProvider{
 		updateAvailableEngines();
 		updateButtons();
 		
+		if (formToolkit != null) {
+			formToolkit.adapt(composite);
+			formToolkit.paintBordersFor(composite);
+			formToolkit.adapt(tree, true, false);
+			formToolkit.adapt(buttonsContainer);
+			formToolkit.adapt(downloadBtn, true, false);
+			formToolkit.adapt(searchBtn, true, false);
+			formToolkit.adapt(removeBtn, true, false);
+		}
 	}
 
 	private void updateButtons() {
