@@ -484,6 +484,7 @@ public class AvailableCordovaEnginesSection implements ISelectionProvider{
 		if (selection instanceof IStructuredSelection) {
 			if (!selection.equals(prevSelection)) { 
 				prevSelection = selection;
+				clearSelection();
 				if (selection.isEmpty()) {
 					engineList.setCheckedElements(new Object[0]);
 				} else {
@@ -498,6 +499,13 @@ public class AvailableCordovaEnginesSection implements ISelectionProvider{
 				fireSelectionChanged();
 			}
 		}	
+	}
+	
+	private void clearSelection() {
+		IStructuredSelection selected = engineList.getStructuredSelection();
+		for (Iterator<?> eng = selected.iterator(); eng.hasNext(); ) {
+			engineList.setChecked(eng.next(), false);
+		}
 	}
 	
 	private void fireSelectionChanged() {

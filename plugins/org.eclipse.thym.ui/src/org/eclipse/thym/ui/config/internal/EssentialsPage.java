@@ -35,6 +35,7 @@ import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.thym.core.HybridProject;
@@ -317,31 +318,65 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 			// engine the old one.
 			@Override
 			public void propertyChange(PropertyChangeEvent ev) {
-				List<Engine> activeEngines = getWidget().getEngines();
-				// getEngines() can return null; property change fires when engine is removed
-				if (activeEngines == null || activeEngines.size() == 0) {
-					return;
-				}
-				List<HybridMobileEngine> engines = new ArrayList<HybridMobileEngine>();
-				List<HybridMobileEngine> availableEngines = 
-						new CordovaEngineProvider().getAvailableEngines();
-				for (HybridMobileEngine availEngine : availableEngines) {
-					for (Engine activeEngine : activeEngines) {
-						if (availEngine.getId() == activeEngine.getName() &&
-								availEngine.getVersion() == activeEngine.getSpec()) {
-							engines.add(availEngine);
-						}
+//				List<Engine> activeEngines = getWidget().getEngines();
+//				// getEngines() can return null; property change fires when engine is removed
+//				if (activeEngines == null || activeEngines.size() == 0) {
+//					return;
+//				}
+//				List<HybridMobileEngine> engines = new ArrayList<HybridMobileEngine>();
+//				List<HybridMobileEngine> availableEngines = 
+//						new CordovaEngineProvider().getAvailableEngines();
+//				for (HybridMobileEngine availEngine : availableEngines) {
+//					for (Engine activeEngine : activeEngines) {
+//						if (availEngine.getId() == activeEngine.getName() &&
+//								availEngine.getVersion() == activeEngine.getSpec()) {
+//							engines.add(availEngine);
+//						}
+//					}
+//				}
+//				if (engines.size() != 0) {
+//					engineSection.setSelection(new StructuredSelection(engines.toArray()));
+//				} else {
+//					
+//				}
+				Display.getDefault().asyncExec(new Runnable () {
+
+					@Override
+					public void run() {
+						// TODO Auto-generated method stub
+						test();
 					}
-				}
-				if (engines.size() != 0) {
-					engineSection.setSelection(new StructuredSelection(engines.toArray()));
-				} else {
 					
-				}
+				});
 			}
 		});
 
 		updateActiveEngines();
+	}
+
+	private void test() {
+		List<Engine> activeEngines = getWidget().getEngines();
+		// getEngines() can return null; property change fires when engine is removed
+		if (activeEngines == null || activeEngines.size() == 0) {
+			return;
+		}
+		List<HybridMobileEngine> engines = new ArrayList<HybridMobileEngine>();
+		List<HybridMobileEngine> availableEngines = 
+				new CordovaEngineProvider().getAvailableEngines();
+		for (HybridMobileEngine availEngine : availableEngines) {
+			for (Engine activeEngine : activeEngines) {
+				if (availEngine.getId() == activeEngine.getName() &&
+						availEngine.getVersion() == activeEngine.getSpec()) {
+					engines.add(availEngine);
+				}
+			}
+		}
+		if (engines.size() != 0) {
+			engineSection.setSelection(null);
+			engineSection.setSelection(new StructuredSelection(engines.toArray()));
+		} else {
+			
+		}
 	}
 
 	private void updateActiveEngines() {
