@@ -31,7 +31,6 @@ import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.PixelConverter;
 import org.eclipse.jface.resource.ImageDescriptor;
-import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
@@ -373,7 +372,7 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 			return;
 		}
 		List<HybridMobileEngine> engines = new ArrayList<HybridMobileEngine>();
-		List<HybridMobileEngine> availableEngines = 
+		List<HybridMobileEngine> availableEngines =
 				new CordovaEngineProvider().getAvailableEngines();
 		for (HybridMobileEngine availEngine : availableEngines) {
 			for (Engine activeEngine : activeEngines) {
@@ -386,7 +385,7 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 		if (engines.size() != 0) {
 			engineSection.setSelection(new StructuredSelection(engines.toArray()));
 		} else {
-			
+
 		}
 	}
 
