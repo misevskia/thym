@@ -33,18 +33,25 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.resources.WorkspaceJob;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Plugin;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.SubMonitor;
+import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.thym.core.HybridCore;
 import org.eclipse.thym.core.HybridProject;
+import org.eclipse.thym.core.internal.cordova.CordovaCLI;
+import org.eclipse.thym.core.internal.cordova.ErrorDetectingCLIResult;
 import org.eclipse.wst.sse.core.StructuredModelManager;
 import org.eclipse.wst.sse.core.internal.provisional.IModelManager;
 import org.eclipse.wst.sse.core.internal.provisional.IModelStateListener;
@@ -431,12 +438,40 @@ public class WidgetModel implements IModelStateListener{
 	public void modelDirtyStateChanged(IStructuredModel model, boolean isDirty) {
 		if(!isDirty){
 			synchronized (this) {
+				doCordovaPrepare();
 				reloadEditableWidget();
 				//release the readOnly model to be reloaded
 				this.readonlyWidget = null;
 				this.readonlyTimestamp = -1;
 			}	
 		}
+	}
+
+	private void doCordovaPrepare() {
+		final IProject project = configXMLtoIFile().getProject();
+		WorkspaceJob prepareJob = new WorkspaceJob(NLS.bind("Execute cordova prepare for {0}",
+				project.getName())) {
+
+			@Override
+			public IStatus runInWorkspace(IProgressMonitor monitor) throws CoreException {
+				HybridProject hybridProject = HybridProject.getHybridProject(project);
+				CordovaCLI cordova = CordovaCLI.newCLIforProject(hybridProject);
+				IStatus status = Status.OK_STATUS;
+				SubMonitor sm = SubMonitor.convert(monitor, 100);
+
+				status = cordova.prepare(sm.newChild(60), "")
+						.convertTo(ErrorDetectingCLIResult.class).asStatus();
+				project.getProject().refreshLocal(IResource.DEPTH_INFINITE, sm.newChild(40));
+
+				sm.done();
+				return status;
+			}
+		};
+
+		ISchedulingRule rule = ResourcesPlugin.getWorkspace().getRuleFactory()
+				.modifyRule(project);
+		prepareJob.setRule(rule);
+		prepareJob.schedule();
 	}
 
 	@Override
