@@ -13,6 +13,7 @@ package org.eclipse.thym.ui.config.internal;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.eclipse.core.databinding.DataBindingContext;
@@ -31,6 +32,9 @@ import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.PixelConverter;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -43,6 +47,7 @@ import org.eclipse.thym.core.config.Author;
 import org.eclipse.thym.core.config.Content;
 import org.eclipse.thym.core.config.Engine;
 import org.eclipse.thym.core.config.Widget;
+import org.eclipse.thym.core.config.WidgetModel;
 import org.eclipse.thym.core.engine.HybridMobileEngine;
 import org.eclipse.thym.core.engine.internal.cordova.CordovaEngineProvider;
 import org.eclipse.thym.ui.HybridUI;
@@ -163,6 +168,10 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 		formToolkit = editor.getToolkit();
 	}
 	
+	private WidgetModel getWidgetModel() {
+		return ((ConfigEditor)getEditor()).getWidgetModel();
+	}
+
 	private Widget getWidget(){
 		return ((ConfigEditor)getEditor()).getWidget();
 	}
@@ -318,27 +327,6 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 			// engine the old one.
 			@Override
 			public void propertyChange(PropertyChangeEvent ev) {
-//				List<Engine> activeEngines = getWidget().getEngines();
-//				// getEngines() can return null; property change fires when engine is removed
-//				if (activeEngines == null || activeEngines.size() == 0) {
-//					return;
-//				}
-//				List<HybridMobileEngine> engines = new ArrayList<HybridMobileEngine>();
-//				List<HybridMobileEngine> availableEngines = 
-//						new CordovaEngineProvider().getAvailableEngines();
-//				for (HybridMobileEngine availEngine : availableEngines) {
-//					for (Engine activeEngine : activeEngines) {
-//						if (availEngine.getId() == activeEngine.getName() &&
-//								availEngine.getVersion() == activeEngine.getSpec()) {
-//							engines.add(availEngine);
-//						}
-//					}
-//				}
-//				if (engines.size() != 0) {
-//					engineSection.setSelection(new StructuredSelection(engines.toArray()));
-//				} else {
-//					
-//				}
 				Display.getDefault().asyncExec(new Runnable () {
 
 					@Override
@@ -346,8 +334,31 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 						// TODO Auto-generated method stub
 						test();
 					}
-					
 				});
+			}
+		});
+
+		engineSection.addSelectionChangedListener(new ISelectionChangedListener() {
+
+			@Override
+			public void selectionChanged(SelectionChangedEvent event) {
+				// TODO Auto-generated method stub
+				IStructuredSelection newSelection =
+						(IStructuredSelection) engineSection.getSelection();
+				WidgetModel m = getWidgetModel();
+				Widget w = getWidget();
+				for (Engine e : w.getEngines()) {
+					w.removeEngine(e);
+				}
+				HybridMobileEngine hybridEngine;
+				Engine engine;
+				for (Iterator<?> iter = newSelection.iterator(); iter.hasNext(); ) {
+					hybridEngine = (HybridMobileEngine) iter.next();
+					engine = m.createEngine(w);
+					engine.setName(hybridEngine.getId());
+					engine.setSpec(hybridEngine.getVersion());
+					w.addEngine(engine);
+				}
 			}
 		});
 
@@ -355,6 +366,7 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 	}
 
 	private void test() {
+		//TODO: Rename this function if using
 		List<Engine> activeEngines = getWidget().getEngines();
 		// getEngines() can return null; property change fires when engine is removed
 		if (activeEngines == null || activeEngines.size() == 0) {
@@ -365,14 +377,13 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 				new CordovaEngineProvider().getAvailableEngines();
 		for (HybridMobileEngine availEngine : availableEngines) {
 			for (Engine activeEngine : activeEngines) {
-				if (availEngine.getId() == activeEngine.getName() &&
-						availEngine.getVersion() == activeEngine.getSpec()) {
+				if (availEngine.getId().equals(activeEngine.getName()) &&
+						availEngine.getVersion().equals(activeEngine.getSpec())) {
 					engines.add(availEngine);
 				}
 			}
 		}
 		if (engines.size() != 0) {
-			engineSection.setSelection(null);
 			engineSection.setSelection(new StructuredSelection(engines.toArray()));
 		} else {
 			
