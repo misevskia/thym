@@ -320,22 +320,37 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 		engineSection = new AvailableCordovaEnginesSection();
 		engineSection.createControl(container);
 
-		getWidget().addPropertyChangeListener("engines", new PropertyChangeListener() {
-			// We can't use updateActiveEngines() here because config.xml changes before
-			// the active engine in the HybridProject -- the change fires while active
-			// engine the old one.
-			@Override
-			public void propertyChange(PropertyChangeEvent ev) {
-				Display.getDefault().asyncExec(new Runnable () {
-
-					@Override
-					public void run() {
-						// TODO Auto-generated method stub
-						test();
-					}
-				});
-			}
-		});
+		//TODO: remove this stuff.
+//		getWidget().addPropertyChangeListener("engines", new PropertyChangeListener() {
+//			// We can't use updateActiveEngines() here because config.xml changes before
+//			// the active engine in the HybridProject -- the change fires while active
+//			// engine the old one.
+//			@Override
+//			public void propertyChange(PropertyChangeEvent ev) {
+//				Display.getDefault().asyncExec(new Runnable () {
+//
+//					@Override
+//					public void run() {
+//						// TODO Auto-generated method stub
+//						test();
+//					}
+//				});
+//			}
+//		});
+		
+//		getWidget().addPropertyChangeListener("engines", new PropertyChangeListener() {
+//			
+//			@Override
+//			public void propertyChange(PropertyChangeEvent evt) {
+//				
+//				Display.getDefault().asyncExec(new Runnable () {
+//
+//					@Override
+//					public void run() {
+//						updateActiveEngines();
+//					}
+//				});
+//			}});
 
 		engineSection.addSelectionChangedListener(new ISelectionChangedListener() {
 
@@ -346,17 +361,25 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 						(IStructuredSelection) engineSection.getSelection();
 				WidgetModel m = getWidgetModel();
 				Widget w = getWidget();
-				for (Engine e : w.getEngines()) {
-					w.removeEngine(e);
+				// Null check is required since w.getEngines() will return null
+				// when there are no engine tags in config.xml.
+				if (w.getEngines() != null) {
+					for (Engine e : w.getEngines()) {
+						w.removeEngine(e);
+					}
 				}
 				HybridMobileEngine hybridEngine;
 				Engine engine;
-				for (Iterator<?> iter = newSelection.iterator(); iter.hasNext(); ) {
-					hybridEngine = (HybridMobileEngine) iter.next();
-					engine = m.createEngine(w);
-					engine.setName(hybridEngine.getId());
-					engine.setSpec(hybridEngine.getVersion());
-					w.addEngine(engine);
+				if (newSelection != null) {
+					for (Iterator<?> iter = newSelection.iterator(); iter.hasNext(); ) {
+						hybridEngine = (HybridMobileEngine) iter.next();
+						engine = m.createEngine(w);
+						engine.setName(hybridEngine.getId());
+						engine.setSpec(hybridEngine.getVersion());
+						w.addEngine(engine);
+					}
+				} else {
+					
 				}
 			}
 		});
@@ -364,30 +387,30 @@ public class EssentialsPage extends AbstactConfigEditorPage implements IHyperlin
 		updateActiveEngines();
 	}
 
-	private void test() {
-		//TODO: Rename this function if using
-		List<Engine> activeEngines = getWidget().getEngines();
-		// getEngines() can return null; property change fires when engine is removed
-		if (activeEngines == null || activeEngines.size() == 0) {
-			return;
-		}
-		List<HybridMobileEngine> engines = new ArrayList<HybridMobileEngine>();
-		List<HybridMobileEngine> availableEngines =
-				new CordovaEngineProvider().getAvailableEngines();
-		for (HybridMobileEngine availEngine : availableEngines) {
-			for (Engine activeEngine : activeEngines) {
-				if (availEngine.getId().equals(activeEngine.getName()) &&
-						availEngine.getVersion().equals(activeEngine.getSpec())) {
-					engines.add(availEngine);
-				}
-			}
-		}
-		if (engines.size() != 0) {
-			engineSection.setSelection(new StructuredSelection(engines.toArray()));
-		} else {
-
-		}
-	}
+//	private void test() {
+//		//TODO: Rename this function if using
+//		List<Engine> activeEngines = getWidget().getEngines();
+//		// getEngines() can return null; property change fires when engine is removed
+//		if (activeEngines == null || activeEngines.size() == 0) {
+//			return;
+//		}
+//		List<HybridMobileEngine> engines = new ArrayList<HybridMobileEngine>();
+//		List<HybridMobileEngine> availableEngines =
+//				new CordovaEngineProvider().getAvailableEngines();
+//		for (HybridMobileEngine availEngine : availableEngines) {
+//			for (Engine activeEngine : activeEngines) {
+//				if (availEngine.getId().equals(activeEngine.getName()) &&
+//						availEngine.getVersion().equals(activeEngine.getSpec())) {
+//					engines.add(availEngine);
+//				}
+//			}
+//		}
+//		if (engines.size() != 0) {
+//			engineSection.setSelection(new StructuredSelection(engines.toArray()));
+//		} else {
+//
+//		}
+//	}
 
 	private void updateActiveEngines() {
 		IFile file = (IFile) getEditor().getEditorInput().getAdapter(IFile.class);

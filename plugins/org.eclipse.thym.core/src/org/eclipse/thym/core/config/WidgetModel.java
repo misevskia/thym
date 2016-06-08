@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -51,6 +52,7 @@ import org.eclipse.osgi.util.NLS;
 import org.eclipse.thym.core.HybridCore;
 import org.eclipse.thym.core.HybridProject;
 import org.eclipse.thym.core.internal.cordova.CordovaCLI;
+import org.eclipse.thym.core.internal.cordova.CordovaCLI.Command;
 import org.eclipse.thym.core.internal.cordova.ErrorDetectingCLIResult;
 import org.eclipse.wst.sse.core.StructuredModelManager;
 import org.eclipse.wst.sse.core.internal.provisional.IModelManager;
@@ -458,9 +460,18 @@ public class WidgetModel implements IModelStateListener{
 				CordovaCLI cordova = CordovaCLI.newCLIforProject(hybridProject);
 				IStatus status = Status.OK_STATUS;
 				SubMonitor sm = SubMonitor.convert(monitor, 100);
-
-				status = cordova.prepare(sm.newChild(60), "")
-						.convertTo(ErrorDetectingCLIResult.class).asStatus();
+				
+				if (editableWidget != null) {
+					List<Engine> configEngines = editableWidget.getEngines();
+					for (Engine e : configEngines) {
+						String platformSpec = e.getName() + "@" + e.getSpec();
+						status = cordova.platform(Command.UPDATE, sm.newChild(60), 
+								platformSpec)
+								.convertTo(ErrorDetectingCLIResult.class).asStatus();
+					}
+				}
+//				status = cordova.prepare(sm.newChild(60), "")
+//						.convertTo(ErrorDetectingCLIResult.class).asStatus();
 				project.getProject().refreshLocal(IResource.DEPTH_INFINITE, sm.newChild(40));
 
 				sm.done();

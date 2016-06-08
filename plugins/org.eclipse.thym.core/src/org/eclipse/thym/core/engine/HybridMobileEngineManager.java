@@ -99,8 +99,19 @@ public class HybridMobileEngineManager {
 	private boolean engineMatches(Engine configEngine, HybridMobileEngine engine){
 		//null checks needed: sometimes we encounter engines without a name or version attribute.
 		if(engine.isManaged()){
-			return configEngine.getName() != null && configEngine.getName().equals(engine.getId()) &&
-				configEngine.getSpec() != null && configEngine.getSpec().equals(engine.getVersion());
+			
+			// Since cordova uses semver, version numbers in config.xml can begin with '~' or '^'.
+			// This breaks the check below, since engine.getVersion() is stored without.
+			if (configEngine.getSpec() != null) {
+				String spec = configEngine.getSpec();
+				if (spec.startsWith("~") || spec.startsWith("^")) {
+					spec = spec.substring(1);
+				}
+				return configEngine.getName() != null && configEngine.getName().equals(engine.getId())
+						&& spec.equals(engine.getVersion());
+			} else {
+				return false;
+			}
 		}else{
 			return engine.getLocation().isValidPath(configEngine.getSpec()) 
 					&& engine.getLocation().equals(new Path(configEngine.getSpec()));
@@ -163,36 +174,54 @@ public class HybridMobileEngineManager {
 			
 			@Override
 			public IStatus runInWorkspace(IProgressMonitor monitor) throws CoreException {
+				
 				WidgetModel model = WidgetModel.getModel(project);
 				Widget w = model.getWidgetForEdit();
-				List<Engine> existingEngines = w.getEngines();
 				CordovaCLI cordova = CordovaCLI.newCLIforProject(project);
 				SubMonitor sm = SubMonitor.convert(monitor,100);
-				if(existingEngines != null ){
-					for (Engine existingEngine : existingEngines) {
-						if(isEngineRemoved(existingEngine, engines)){
-							cordova.platform(Command.REMOVE, sm,existingEngine.getName());
-						}
-						w.removeEngine(existingEngine);
-					}
-				}
-				sm.worked(30);
-				for (HybridMobileEngine engine : engines) {
-					Engine e = model.createEngine(w);
-					e.setName(engine.getId());
-					if(!engine.isManaged()){
-						e.setSpec(engine.getLocation().toString());
-					}else{
-						e.setSpec(engine.getVersion());
-					}
-					w.addEngine(e);
-				}
-				model.save();
 				IStatus status = Status.OK_STATUS;
-				status = cordova.prepare(sm.newChild(40), "").convertTo(ErrorDetectingCLIResult.class).asStatus();
-				project.getProject().refreshLocal(IResource.DEPTH_INFINITE, sm.newChild(30));
+				for (HybridMobileEngine e : engines) {
+					String platformSpec = e.getId() + "@" + e.getVersion();
+					status = cordova.platform(Command.UPDATE, sm.newChild(70), platformSpec, 
+							CordovaCLI.OPTION_SAVE).convertTo(ErrorDetectingCLIResult.class).asStatus();
+					if (!status.isOK()) {
+						break;
+					}
+				}
+				project.getProject().refreshLocal(IResource.DEPTH_INFINITE,  sm.newChild(30));
+				model.resyncModel();
 				sm.done();
 				return status;
+//				WidgetModel model = WidgetModel.getModel(project);
+//				Widget w = model.getWidgetForEdit();
+//				List<Engine> existingEngines = w.getEngines();
+//				CordovaCLI cordova = CordovaCLI.newCLIforProject(project);
+//				SubMonitor sm = SubMonitor.convert(monitor,100);
+//				if(existingEngines != null ){
+//					for (Engine existingEngine : existingEngines) {
+//						if(isEngineRemoved(existingEngine, engines)){
+//							cordova.platform(Command.REMOVE, sm,existingEngine.getName());
+//						}
+//						w.removeEngine(existingEngine);
+//					}
+//				}
+//				sm.worked(30);
+//				for (HybridMobileEngine engine : engines) {
+//					Engine e = model.createEngine(w);
+//					e.setName(engine.getId());
+//					if(!engine.isManaged()){
+//						e.setSpec(engine.getLocation().toString());
+//					}else{
+//						e.setSpec(engine.getVersion());
+//					}
+//					w.addEngine(e);
+//				}
+//				model.save();
+//				IStatus status = Status.OK_STATUS;
+//				status = cordova.prepare(sm.newChild(40), "").convertTo(ErrorDetectingCLIResult.class).asStatus();
+//				project.getProject().refreshLocal(IResource.DEPTH_INFINITE, sm.newChild(30));
+//				sm.done();
+//				return status;
 			}
 		};
 		ISchedulingRule rule = ResourcesPlugin.getWorkspace().getRuleFactory().modifyRule(this.project.getProject());
