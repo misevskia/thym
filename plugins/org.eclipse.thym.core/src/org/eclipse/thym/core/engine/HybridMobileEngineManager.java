@@ -10,10 +10,12 @@
  *******************************************************************************/
 package org.eclipse.thym.core.engine;
 
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.resources.WorkspaceJob;
@@ -37,6 +39,12 @@ import org.eclipse.thym.core.internal.cordova.CordovaCLI.Command;
 import org.eclipse.thym.core.internal.cordova.ErrorDetectingCLIResult;
 import org.eclipse.thym.core.platform.PlatformConstants;
 import org.osgi.framework.Version;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 /**
  * API for managing the engines for a {@link HybridProject}.
  * 
@@ -56,6 +64,10 @@ public class HybridMobileEngineManager {
 	 * Active engines are determined as follows. 
 	 * <ol>
 	 * 	<li>
+	 * if any platforms are listed in the platforms.json file, these are returned first, without
+	 * checking config.xml.
+	 * 	</li>
+	 * 	<li>
 	 * if <i>engine</i> entries exist on config.xml match them to installed cordova engines. 
 	 * 	</li>
 	 * 	<li>
@@ -66,6 +78,11 @@ public class HybridMobileEngineManager {
 	 * @return possibly empty array of {@link HybridMobileEngine}s
 	 */
 	public HybridMobileEngine[] getActiveEngines(){
+		HybridMobileEngine[] platformJsonEngines = getActiveEnginesFromPlatformsJson();
+		if (platformJsonEngines.length > 0) {
+			return platformJsonEngines;
+		}
+		
 		try{
 			WidgetModel model = WidgetModel.getModel(project);
 			Widget w = model.getWidgetForRead();
@@ -117,7 +134,85 @@ public class HybridMobileEngineManager {
 					&& engine.getLocation().equals(new Path(configEngine.getSpec()));
 		}
 	}
-	
+
+	/**
+	 * Returns the active engines for the project by looking at
+	 * the values stored in platforms.json.
+	 * 
+	 * </p>
+	 * If no engines are found in platforms.json, returns an empty array.
+	 * The file platforms.json is where the currently active cordova engines
+	 * are stored, (semi-)independently of what is stored in config.xml.
+	 *
+	 * @see HybridMobileEngineManager#defaultEngines()
+	 * @see HybridMobileEngineManager#getActiveEngines()
+	 * @return possibly empty array of {@link HybridMobileEngine}s
+	 */
+	public HybridMobileEngine[] getActiveEnginesFromPlatformsJson(){
+		try {
+			IFile file = project.getPlatformsJSONFile();
+			if (file == null) {
+				return new HybridMobileEngine[0];
+			}
+			
+			CordovaEngineProvider engineProvider = new CordovaEngineProvider();
+			List<HybridMobileEngine> activeEngines = new ArrayList<HybridMobileEngine>();
+			final List<HybridMobileEngine> availableEngines = engineProvider.getAvailableEngines();
+			
+			JsonParser parser = new JsonParser();
+			JsonObject root = parser.parse(new InputStreamReader(file.getContents())).getAsJsonObject();
+			for (String platform : PlatformConstants.SUPPORTED_PLATFORMS) {
+				if (root.has(platform)) {
+					HybridMobileEngine engine = 
+							getHybridMobileEngine(platform, root.get(platform).getAsString());
+					if (engine != null) {
+						activeEngines.add(engine);
+					}
+				}
+			}
+			return activeEngines.toArray(new HybridMobileEngine[activeEngines.size()]);
+
+		} catch (JsonIOException e) {
+			HybridCore.log(IStatus.WARNING, "Error reading input stream from platforms.json", e);
+		} catch (JsonSyntaxException e) {
+			HybridCore.log(IStatus.WARNING, "platforms.json has errors", e);
+		} catch (CoreException e) {
+			HybridCore.log(IStatus.WARNING, "Error while opening platforms.json", e);
+		}
+		return new HybridMobileEngine[0];
+	}
+
+	/**
+	 * Returns the HybridMobileEngine that corresponds to the provide name and spec. 
+	 * Searches through available engines for a match, and may return null if no 
+	 * matching engine is found.
+	 * 
+	 * @return The HybridMobileEngine corresponding to name and spec, or null if 
+	 * a match cannot be found.
+	 */
+	private HybridMobileEngine getHybridMobileEngine(String name, String spec) {
+		CordovaEngineProvider engineProvider = new CordovaEngineProvider();
+		final List<HybridMobileEngine> availableEngines = engineProvider.getAvailableEngines();
+		for (HybridMobileEngine engine : availableEngines) {
+			if (engine.isManaged() && engine.getId().equals(name)
+								   && engine.getVersion().equals(spec)) {
+				return engine;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Returns the {@link HybridMobileEngine}s specified within Thym preferences.
+	 *
+	 * </p> 
+	 * If no engines have been added, returns an empty array. Otherwise returns
+	 * either the user's preference, or, by default, the most recent version
+	 * available for each platform.
+	 *
+	 * @see HybridMobileEngineManager#getActiveEngines()
+	 * @return possibly empty array of {@link HybridMobileEngine}s
+	 */
 	public static HybridMobileEngine[] defaultEngines() {
 		CordovaEngineProvider engineProvider = new CordovaEngineProvider();
 		List<HybridMobileEngine> availableEngines = engineProvider.getAvailableEngines();

@@ -147,6 +147,14 @@ public class HybridProject implements IAdaptable {
 		return null;
 	}
 	
+	public IFile getPlatformsJSONFile() {
+		IFile platforms = kernelProject.getFile(PlatformConstants.PLATFORMS_JSON_PATH);
+		if (platforms.exists()) {
+			return platforms;
+		}
+		return null;
+	}
+	
 	private HybridMobileEngineManager getHybridMobileEngineManager(){
 		if (this.engineManager == null ){
 			engineManager = new HybridMobileEngineManager(this);
@@ -161,6 +169,16 @@ public class HybridProject implements IAdaptable {
 	 */
 	public HybridMobileEngine[] getActiveEngines(){
 		return getHybridMobileEngineManager().getActiveEngines();
+	}
+
+	/**
+	 * Returns the {@link HybridMobileEngine}s for this project, as found in 
+	 * platforms.json.
+	 * 
+	 * @return a possibly empty array of active engines
+	 */
+	public HybridMobileEngine[] getActiveEnginesFromPlatformsJson() {
+		return getHybridMobileEngineManager().getActiveEnginesFromPlatformsJson();
 	}
 	
 	/**

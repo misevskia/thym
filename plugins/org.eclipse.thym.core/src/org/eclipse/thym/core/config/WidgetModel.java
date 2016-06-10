@@ -24,6 +24,7 @@ import static org.eclipse.thym.core.config.WidgetModelConstants.WIDGET_TAG_ENGIN
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +52,7 @@ import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.thym.core.HybridCore;
 import org.eclipse.thym.core.HybridProject;
+import org.eclipse.thym.core.engine.HybridMobileEngine;
 import org.eclipse.thym.core.internal.cordova.CordovaCLI;
 import org.eclipse.thym.core.internal.cordova.CordovaCLI.Command;
 import org.eclipse.thym.core.internal.cordova.ErrorDetectingCLIResult;
@@ -440,7 +442,7 @@ public class WidgetModel implements IModelStateListener{
 	public void modelDirtyStateChanged(IStructuredModel model, boolean isDirty) {
 		if(!isDirty){
 			synchronized (this) {
-				updateEnginesInConfigXML();
+				updateEnginesFromConfigXML();
 				reloadEditableWidget();
 				//release the readOnly model to be reloaded
 				this.readonlyWidget = null;
@@ -449,7 +451,7 @@ public class WidgetModel implements IModelStateListener{
 		}
 	}
 
-	private void updateEnginesInConfigXML() {
+	private void updateEnginesFromConfigXML() {
 		final IProject project = configXMLtoIFile().getProject();
 		WorkspaceJob prepareJob = new WorkspaceJob(NLS.bind("Execute cordova prepare for {0}",
 				project.getName())) {
@@ -457,6 +459,8 @@ public class WidgetModel implements IModelStateListener{
 			@Override
 			public IStatus runInWorkspace(IProgressMonitor monitor) throws CoreException {
 				HybridProject hybridProject = HybridProject.getHybridProject(project);
+				HybridMobileEngine[] activeEngines = 
+						hybridProject.getActiveEnginesFromPlatformsJson();
 				CordovaCLI cordova = CordovaCLI.newCLIforProject(hybridProject);
 				IStatus status = Status.OK_STATUS;
 				SubMonitor sm = SubMonitor.convert(monitor, 100);
@@ -469,9 +473,12 @@ public class WidgetModel implements IModelStateListener{
 					}
 					for (Engine e : configEngines) {
 						String platformSpec = e.getName() + "@" + e.getSpec();
-						status = cordova.platform(Command.UPDATE, sm.newChild(60),
-								platformSpec)
-								.convertTo(ErrorDetectingCLIResult.class).asStatus();
+						if (checkPlatformInstalled(activeEngines, e.getName())) {
+							status = cordova.platform(Command.UPDATE, sm.newChild(60), platformSpec)
+									.convertTo(ErrorDetectingCLIResult.class).asStatus();
+						} else {
+							cordova.platform(Command.ADD, sm, platformSpec);
+						}
 					}
 				}
 				project.getProject().refreshLocal(IResource.DEPTH_INFINITE, sm.newChild(40));
@@ -485,6 +492,15 @@ public class WidgetModel implements IModelStateListener{
 				.modifyRule(project);
 		prepareJob.setRule(rule);
 		prepareJob.schedule();
+	}
+
+	private boolean checkPlatformInstalled(HybridMobileEngine[] activeEngines, String engineName) {
+		for (HybridMobileEngine engine : activeEngines) {
+			if (engine.getId().equals(engineName)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Override
